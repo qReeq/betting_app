@@ -4,8 +4,7 @@ from scores import final_score_matches
 from bets import bets
 import customtkinter
 
-# DATABASE
-
+# DATABASE BASICS WITH CLASSES
 db = SqliteDatabase('main.db')
 
 
@@ -44,6 +43,7 @@ for n in user_score:
     users_list.append(n)
 
 
+# ADDING ALL VALUES TO DB
 def rebuild_db():
     #   USER LISTS WITH POINTS
     for user in user_score:
@@ -58,25 +58,28 @@ def rebuild_db():
             bet_x = UserBet.create(owner=user, match=x, left_bet=bets[user][x][0], right_bet=bets[user][x][1])
 
 
-# rebuild_db()
+# rebuild_db()  # IF STH HAPPEN WITH DB, RUN THIS !!!
 
-# VISUAL
-scoring = ""
-for namex in User.select():
-    scoring += namex.name + ": " + str(namex.score) + "\n"
+#
+#
+# VISUAL PART
+#
+#
 
-matches = ""
-for matchesx in EndedMatch.select():
-    matches += matchesx.name + ": " + str(matchesx.left_score) + " : " + str(matchesx.right_score) + "\n"
-
-# OKNO PROGRAMU
+# CTK BASIC SETTINGS
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("green")
-
 root = customtkinter.CTk()
-
 root.title('Obstawki')
 root.geometry("600x400")
+scoring = ""
+matches = ""
+
+# LABELS ENTRY
+for namex in User.select():
+    scoring += namex.name + ": " + str(namex.score) + "\n"
+for matchesx in EndedMatch.select():
+    matches += matchesx.name + ": " + str(matchesx.left_score) + " : " + str(matchesx.right_score) + "\n"
 
 score_label = customtkinter.CTkLabel(text=scoring, text_font='Tahoma', justify='right')
 score_label.grid(column=0, row=0, padx=25, pady=25)
@@ -85,36 +88,38 @@ matches_label = customtkinter.CTkLabel(text=matches, text_font='Tahoma', justify
 matches_label.grid(column=2, row=0, padx=25, pady=25)
 
 # SHOW MATCHES LIST
-
 value = ""
 matches_for_list = []
-
-
-def selecto(choice):
-    return choice
-
-
 choose = customtkinter.StringVar()
 
+# MATCH LIST IN CTK COMBOBOX WITH POINTS (WITHOUT SCORING)
 for matchesxx in EndedMatch.select():
     matches_for_list.append(matchesxx.name)
-
-list_of_matches = customtkinter.CTkComboBox(width=200, values=matches_for_list, variable=choose, command=selecto)
+list_of_matches = customtkinter.CTkComboBox(width=200, values=matches_for_list, variable=choose)
 list_of_matches.grid(column=2, row=1)
-list_of_matches.bind("<<ListboxSelect>>", selecto)
 
-# SCORE INPUT
+# CTK SCORE INPUT
 score_input = customtkinter.CTkEntry(width=40, placeholder_text="0:0")
 score_input.grid(column=0, row=1, padx=0, pady=25)
 
 
+# BUTTON TO CHANGE THE ACTUAL SCORE IN DB
+# NOT WORKING
 def change_input():
     insert = score_input.get()
-    fir = (EndedMatch.update({EndedMatch.left_score: insert[0]}).where(EndedMatch.name == choose).execute())
+    fir = (EndedMatch
+           .update(left_score=insert[0])
+           .where(EndedMatch.name == choose)
+           .execute())
+    print(EndedMatch.get(EndedMatch.name == choose.get()).left_score)
 
 
-# print(User1Bet.get(User1Bet.match == 'Walia-Iran').right_bet)
 input_button = customtkinter.CTkButton(text='OK', text_font='Tahoma', command=change_input)
 input_button.grid(column=1, row=1, padx=0, pady=25)
+
+# SCORE LOGIC
+# SOON KEKW
+
+
 
 root.mainloop()
