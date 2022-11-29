@@ -62,7 +62,7 @@ def rebuild_db():
 
 #
 #
-# VISUAL PART
+# CTK PART
 #
 #
 
@@ -107,11 +107,16 @@ score_input.grid(column=0, row=1, padx=0, pady=25)
 # NOT WORKING
 def change_input():
     insert = score_input.get()
-    fir = (EndedMatch
-           .update(left_score=insert[0])
-           .where(EndedMatch.name == choose)
-           .execute())
+    ls = (EndedMatch
+          .update(left_score=insert[0])
+          .where(EndedMatch.name == choose.get())
+          .execute())
+    rs = (EndedMatch
+          .update(right_score=insert[2])
+          .where(EndedMatch.name == choose.get())
+          .execute())
     print(EndedMatch.get(EndedMatch.name == choose.get()).left_score)
+    print(EndedMatch.get(EndedMatch.name == choose.get()).right_score)
 
 
 input_button = customtkinter.CTkButton(text='OK', text_font='Tahoma', command=change_input)
@@ -119,7 +124,6 @@ input_button.grid(column=1, row=1, padx=0, pady=25)
 
 # SCORE LOGIC
 # SOON KEKW
-
 
 
 root.mainloop()
