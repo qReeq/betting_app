@@ -86,40 +86,39 @@ def checking_score(choose_out):
             EndedMatch.name == choose_out.get()).right_score
         print("draw")
     # ADDING POINTS
-    for user_bet in UserBet.get(UserBet.match == choose_out.get()).owner:
-        print(user_bet)
-        # if user_bet.left_score > user_bet.right_score == left_win:  # czy trafiona strona, lewa
-        #
-        #     score_for_user = (User
-        #                       .update(score=+1)
-        #                       .where(User.name == user_bet.owner)
-        #                       .execute())
-        #     if user_bet.left_score + user_bet.right_score == left_win_value:  # czy trafiony dokładny wynik
-        #         score_for_user = (User
-        #                           .update(score=+2)
-        #                           .where(User.name == user_bet.owner)
-        #                           .execute())
-        # if user_bet.left_score < user_bet.right_score == right_win:  # czy trafiona strona, prawa
-        #     score_for_user = (User
-        #                       .update(score=+1)
-        #                       .where(User.name == user_bet.owner)
-        #                       .execute())
-        #     if user_bet.left_score + user_bet.right_score == right_win_value:  # czy trafiony dokładny wynik
-        #         score_for_user = (User
-        #                           .update(score=+2)
-        #                           .where(User.name == user_bet.owner)
-        #                           .execute())
-        # if user_bet.left_score == user_bet.right_score == draw:  # czy trafiony remis
-        #     score_for_user = (User
-        #                       .update(score=+1)
-        #                       .where(User.name == user_bet.owner)
-        #                       .execute())
-        #     if user_bet.left_score + user_bet.right_score == draw_value:  # czy trafiony dokładny wynik
-        #         score_for_user = (User
-        #                           .update(score=+2)
-        #                           .where(User.name == user_bet.owner)
-        #                           .execute())
-        #
+    for user_bet in UserBet.select().where(UserBet.match == choose_out.get()):
+        print(user_bet.owner_id)
+        if user_bet.left_bet > user_bet.right_bet == left_win:  # czy trafiona strona, lewa
+            score_for_user = (User
+                              .update(score=+1)
+                              .where(User.name == user_bet.owner_id)
+                              .execute())
+            if user_bet.left_bet + user_bet.right_bet == left_win_value:  # czy trafiony dokładny wynik
+                score_for_user = (User
+                                  .update(score=+2)
+                                  .where(User.name == user_bet.owner_id)
+                                  .execute())
+        if user_bet.left_bet < user_bet.right_bet == right_win:  # czy trafiona strona, prawa
+            score_for_user = (User
+                              .update(score=+1)
+                              .where(User.name == user_bet.owner_id)
+                              .execute())
+            if user_bet.left_bet + user_bet.right_bet == right_win_value:  # czy trafiony dokładny wynik
+                score_for_user = (User
+                                  .update(score=+2)
+                                  .where(User.name == user_bet.owner_id)
+                                  .execute())
+        if user_bet.left_bet == user_bet.right_bet == draw:  # czy trafiony remis
+            score_for_user = (User
+                              .update(score=+1)
+                              .where(User.name == user_bet.owner_id)
+                              .execute())
+            if user_bet.left_score + user_bet.right_score == draw_value:  # czy trafiony dokładny wynik
+                score_for_user = (User
+                                  .update(score=+2)
+                                  .where(User.name == user_bet.owner_id)
+                                  .execute())
+
 
 # rebuild_db()  # IF STH HAPPEN WITH DB, RUN THIS !!!
 
