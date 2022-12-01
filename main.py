@@ -30,6 +30,7 @@ class UserBet(Model):
     match = CharField()
     left_bet = SmallIntegerField()
     right_bet = SmallIntegerField()
+    score_bet = SmallIntegerField()
 
     class Meta:
         database = db
@@ -55,7 +56,8 @@ def rebuild_db():
     # MATCH BETS FOR EACH USER
     for user in bets:
         for x in bets[user]:
-            bet_x = UserBet.create(owner=user, match=x, left_bet=bets[user][x][0], right_bet=bets[user][x][1])
+            bet_x = UserBet.create(owner=user, match=x, left_bet=bets[user][x][0], right_bet=bets[user][x][1],
+                                   score_bet=bets[user][x][2])
 
 
 def checking_score(choose_out):
@@ -87,38 +89,30 @@ def checking_score(choose_out):
         print("draw")
     # ADDING POINTS
     for user_bet in UserBet.select().where(UserBet.match == choose_out.get()):
-        print(user_bet.owner_id)
-        if user_bet.left_bet > user_bet.right_bet == left_win:  # czy trafiona strona, lewa
-            score_for_user = (User
-                              .update(score=+1)
-                              .where(User.name == user_bet.owner_id)
+        if (user_bet.left_bet > user_bet.right_bet) == left_win and \
+                (user_bet.left_bet < user_bet.right_bet) == right_win and \
+                (user_bet.left_bet == user_bet.right_bet) == draw:
+            print(((user_bet.left_bet > user_bet.right_bet) == left_win),
+                  ((user_bet.left_bet < user_bet.right_bet) == right_win),
+                  ((user_bet.left_bet == user_bet.right_bet) == draw))
+            print(user_bet.match)
+            score_for_user = (UserBet
+                              .update(score_bet=1)
+                              .where(UserBet.match == user_bet.match)
                               .execute())
-            if user_bet.left_bet + user_bet.right_bet == left_win_value:  # czy trafiony dokładny wynik
-                score_for_user = (User
-                                  .update(score=+2)
-                                  .where(User.name == user_bet.owner_id)
+            if user_bet.left_bet + user_bet.right_bet == left_win_value or \
+                    user_bet.left_bet + user_bet.right_bet == right_win_value or \
+                    user_bet.left_bet + user_bet.right_bet == draw_value:  # czy trafiony dokładny wynik
+                score_for_user = (UserBet
+                                  .update(score_bet=3)
+                                  .where(UserBet.match == user_bet.match)
                                   .execute())
-        if user_bet.left_bet < user_bet.right_bet == right_win:  # czy trafiona strona, prawa
-            score_for_user = (User
-                              .update(score=+1)
-                              .where(User.name == user_bet.owner_id)
+        else:
+            score_for_user = (UserBet
+                              .update(score_bet=0)
+                              .where(UserBet.owner_id == user_bet.owner_id)
                               .execute())
-            if user_bet.left_bet + user_bet.right_bet == right_win_value:  # czy trafiony dokładny wynik
-                score_for_user = (User
-                                  .update(score=+2)
-                                  .where(User.name == user_bet.owner_id)
-                                  .execute())
-        if user_bet.left_bet == user_bet.right_bet == draw:  # czy trafiony remis
-            score_for_user = (User
-                              .update(score=+1)
-                              .where(User.name == user_bet.owner_id)
-                              .execute())
-            if user_bet.left_score + user_bet.right_score == draw_value:  # czy trafiony dokładny wynik
-                score_for_user = (User
-                                  .update(score=+2)
-                                  .where(User.name == user_bet.owner_id)
-                                  .execute())
-
+#
 
 # rebuild_db()  # IF STH HAPPEN WITH DB, RUN THIS !!!
 
@@ -133,14 +127,20 @@ customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("green")
 root = customtkinter.CTk()
 root.title('Obstawki')
-root.geometry("600x400")
+root.geometry("1000x600")
+frame = customtkinter.CTkFrame(root, corner_radius=10)
+frame.grid(pady=20)
 
 
 # LABELS ENTRY
 def score_label_refresh():
     scoring = ""
+
     for namex in User.select():
-        scoring += namex.name + ": " + str(namex.score) + "\n"
+        score_us = 0
+        for score in UserBet.select().where(UserBet.owner_id == namex.name):
+            score_us += score.score_bet
+        scoring += namex.name + ": " + str(score_us) + "\n"
     score_label = customtkinter.CTkLabel(text=scoring, text_font='Tahoma', justify='right')
     score_label.grid(column=0, row=0, padx=25, pady=25)
 
@@ -165,11 +165,11 @@ choose = customtkinter.StringVar()
 for matchesxx in EndedMatch.select():
     matches_for_list.append(matchesxx.name)
 list_of_matches = customtkinter.CTkComboBox(width=200, values=matches_for_list, variable=choose)
-list_of_matches.grid(column=2, row=1)
+list_of_matches.grid(column=1, row=1,)
 
 # CTK SCORE INPUT
 score_input = customtkinter.CTkEntry(width=40, placeholder_text="0:0")
-score_input.grid(column=0, row=1, padx=0, pady=25)
+score_input.grid(column=0, row=1)
 
 
 # BUTTON TO CHANGE THE ACTUAL SCORE IN DB
@@ -186,11 +186,9 @@ def change_input():
     match_label_refresh()
     checking_score(choose_out=choose)
     score_label_refresh()
-    print(User.get(User.name == "Grzegorz").score)
-
 
 input_button = customtkinter.CTkButton(text='OK', text_font='Tahoma', command=change_input)
-input_button.grid(column=1, row=1, padx=0, pady=25)
+input_button.grid(column=2, row=2)
 
 # SCORE LOGIC
 # SOON KEKW
