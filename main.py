@@ -67,69 +67,61 @@ def checking_score(choose_out):
     draw_value = 0
     left_win_value = 0
     right_win_value = 0
-
     # CHECKING ACTUAL UPDATED SCORE, LEFT, RIGHT OR DRAW
+
     if EndedMatch.get(EndedMatch.name == choose_out.get()).left_score > EndedMatch.get(
             EndedMatch.name == choose_out.get()).right_score:
         left_win = True
-        left_win_value = EndedMatch.get(EndedMatch.name == choose_out.get()).left_score + EndedMatch.get(
-            EndedMatch.name == choose_out.get()).right_score
-        print("left")
-    if EndedMatch.get(EndedMatch.name == choose_out.get()).left_score < EndedMatch.get(
+    if EndedMatch.get(EndedMatch.name == choose_out.get()).right_score < EndedMatch.get(
             EndedMatch.name == choose_out.get()).right_score:
         right_win = True
-        right_win_value = EndedMatch.get(EndedMatch.name == choose_out.get()).left_score + EndedMatch.get(
-            EndedMatch.name == choose_out.get()).right_score
-        print("right")
     if EndedMatch.get(EndedMatch.name == choose_out.get()).left_score == EndedMatch.get(
             EndedMatch.name == choose_out.get()).right_score:
         draw = True
-        draw_value = EndedMatch.get(EndedMatch.name == choose_out.get()).left_score + EndedMatch.get(
-            EndedMatch.name == choose_out.get()).right_score
-        print("draw")
     # ADDING POINTS
     for user_bet in UserBet.select().where(UserBet.match == choose_out.get()):
         if (user_bet.left_bet > user_bet.right_bet) == left_win and \
                 (user_bet.left_bet < user_bet.right_bet) == right_win and \
                 (user_bet.left_bet == user_bet.right_bet) == draw:
-            print(((user_bet.left_bet > user_bet.right_bet) == left_win),
-                  ((user_bet.left_bet < user_bet.right_bet) == right_win),
-                  ((user_bet.left_bet == user_bet.right_bet) == draw))
-            print(user_bet.match)
             score_for_user = (UserBet
-                              .update(score_bet=1)
+                              .update(score_bet=10)
                               .where(UserBet.match == user_bet.match)
                               .execute())
-            if user_bet.left_bet + user_bet.right_bet == left_win_value or \
-                    user_bet.left_bet + user_bet.right_bet == right_win_value or \
-                    user_bet.left_bet + user_bet.right_bet == draw_value:  # czy trafiony dokładny wynik
-                score_for_user = (UserBet
-                                  .update(score_bet=3)
-                                  .where(UserBet.match == user_bet.match)
-                                  .execute())
+            if user_bet.right_bet == EndedMatch.get(EndedMatch.name == choose_out.get()).right_score and \
+                    user_bet.left_bet == EndedMatch.get(EndedMatch.name == choose_out.get()).left_score:
+                print(user_bet.left_bet, user_bet.right_bet)
+                print("yay")
+
+                score_for_user3 = (UserBet
+                                   .update(score_bet=30)
+                                   .where(UserBet.match == user_bet.match)
+                                   .execute())
+                print("yay2")
         else:
             score_for_user = (UserBet
                               .update(score_bet=0)
                               .where(UserBet.owner_id == user_bet.owner_id)
                               .execute())
-#
+
 
 # rebuild_db()  # IF STH HAPPEN WITH DB, RUN THIS !!!
-
 #
 #
 # CTK PART
 #
-#
-
 # CTK BASIC SETTINGS
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("green")
 root = customtkinter.CTk()
-root.title('Obstawki')
-root.geometry("1000x600")
+root.title('Bet_app')
+root.geometry("660x450")
 frame = customtkinter.CTkFrame(root, corner_radius=10)
-frame.grid(pady=20)
+tabview = customtkinter.CTkTabview(root, width=620, height=400)
+tabview.grid(padx=20, pady=20)
+user_tab = tabview.add("User input")  # add tab at the end
+match_tab = tabview.add("User match input")  # add tab at the end
+score_tab = tabview.add("Scores and match update")  # add tab at the end
+tabview.set("Scores and match update")  # set currently visible tab
 
 
 # LABELS ENTRY
@@ -141,16 +133,16 @@ def score_label_refresh():
         for score in UserBet.select().where(UserBet.owner_id == namex.name):
             score_us += score.score_bet
         scoring += namex.name + ": " + str(score_us) + "\n"
-    score_label = customtkinter.CTkLabel(text=scoring, text_font='Tahoma', justify='right')
-    score_label.grid(column=0, row=0, padx=25, pady=25)
+    score_label = customtkinter.CTkLabel(score_tab, text=scoring, font=('Tahoma', 15), justify='right')
+    score_label.grid(column=2, row=0, padx=25, pady=25, )
 
 
 def match_label_refresh():
     matches = ""
     for matchesx in EndedMatch.select():
         matches += matchesx.name + ": " + str(matchesx.left_score) + " : " + str(matchesx.right_score) + "\n"
-    matches_label = customtkinter.CTkLabel(text=matches, text_font='Tahoma', justify='right')
-    matches_label.grid(column=2, row=0, padx=25, pady=25)
+    matches_label = customtkinter.CTkLabel(score_tab, text=matches, font=('Tahoma', 15), justify='right')
+    matches_label.grid(column=0, row=0, padx=25, pady=25)
 
 
 match_label_refresh()
@@ -164,11 +156,11 @@ choose = customtkinter.StringVar()
 # MATCH LIST IN CTK COMBOBOX WITH POINTS (WITHOUT SCORING)
 for matchesxx in EndedMatch.select():
     matches_for_list.append(matchesxx.name)
-list_of_matches = customtkinter.CTkComboBox(width=200, values=matches_for_list, variable=choose)
-list_of_matches.grid(column=1, row=1,)
+list_of_matches = customtkinter.CTkComboBox(score_tab, width=200, values=matches_for_list, variable=choose)
+list_of_matches.grid(column=1, row=1)
 
 # CTK SCORE INPUT
-score_input = customtkinter.CTkEntry(width=40, placeholder_text="0:0")
+score_input = customtkinter.CTkEntry(score_tab, width=40, placeholder_text="0:0")
 score_input.grid(column=0, row=1)
 
 
@@ -187,11 +179,12 @@ def change_input():
     checking_score(choose_out=choose)
     score_label_refresh()
 
-input_button = customtkinter.CTkButton(text='OK', text_font='Tahoma', command=change_input)
-input_button.grid(column=2, row=2)
+
+input_button = customtkinter.CTkButton(score_tab, text='OK', font=('Tahoma', 15), command=change_input)
+input_button.grid(column=2, row=1)
 
 # SCORE LOGIC
-# SOON KEKW
+# SOON KEK
 
 
 root.mainloop()
