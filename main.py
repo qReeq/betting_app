@@ -96,148 +96,228 @@ match_tab = tabview.add("Match input")
 match_bet_tab = tabview.add("User bets for matches")
 score_tab = tabview.add("Scores and match update")
 tabview.set("Scores and match update")
+choose = customtkinter.StringVar()
+choosed_match = customtkinter.StringVar()
+choosed_user = customtkinter.StringVar()
 
 
-# LABELS ENTRY
-def score_label_refresh():
+def all_labels_refresh():
+    # SCORE TAB
+    matches_with_score = ""
     users_with_score = ""
-
+    matches = []
+    users = []
+    for matches_db in EndedMatch.select():
+        matches_with_score += matches_db.name + ": " + str(matches_db.left_score) + " : " + str(
+            matches_db.right_score) + "\n"
     for names in User.select():
         score_us = 0
         for score in UserBet.select().where(UserBet.owner_id == names.name):
             score_us += score.score_bet
         users_with_score += names.name + ": " + str(score_us) + "\n"
-    users_with_score_label = customtkinter.CTkLabel(score_tab, text=users_with_score, font=('Tahoma', 15),
-                                                    justify='right')
-    users_with_score_label.grid(column=2, row=0, padx=25, pady=25)
+    for user in User.select():
+        users.append(user.name)
+    for match in EndedMatch.select():
+        matches.append(match.name)
 
-
-def match_label_refresh():
-    matches_list_with_score = ""
-    for matches_db in EndedMatch.select():
-        matches_list_with_score += matches_db.name + ": " + str(matches_db.left_score) + " : " + str(
-            matches_db.right_score) + "\n"
-    matches_label_with_score = customtkinter.CTkLabel(score_tab, text=matches_list_with_score, font=('Tahoma', 15),
+    matches_label_with_score = customtkinter.CTkLabel(score_tab,
+                                                      text=matches_with_score,
+                                                      font=('Tahoma', 15),
                                                       justify='right')
     matches_label_with_score.grid(column=0, row=0, padx=25, pady=25)
 
+    users_with_score_label = customtkinter.CTkLabel(score_tab,
+                                                    text=users_with_score,
+                                                    font=('Tahoma', 15),
+                                                    justify='right')
+    users_with_score_label.grid(column=3, row=0, padx=25, pady=25)
 
-match_label_refresh()
-score_label_refresh()
+    # USER TAB
+    list_of_matches = customtkinter.CTkOptionMenu(score_tab,
+                                                  width=200,
+                                                  values=matches,
+                                                  variable=choose)
+    list_of_matches.grid(column=0, row=1, padx=20)
 
-# SHOW MATCHES LIST
-value = ""
-matches_for_list = []
-choose = customtkinter.StringVar()
+    list_of_users = customtkinter.CTkOptionMenu(user_tab,
+                                                width=200,
+                                                values=users,
+                                                variable=choosed_user,
+                                                fg_color="gray")
+    list_of_users.grid(column=0, row=1, padx=60, pady=60)
 
-# MATCH LIST IN CTK COMBOBOX WITH POINTS (WITHOUT SCORING)
-for matches in EndedMatch.select():
-    matches_for_list.append(matches.name)
-list_of_matches = customtkinter.CTkOptionMenu(score_tab, width=200, values=matches_for_list, variable=choose)
-list_of_matches.grid(column=1, row=1)
+    # MATCH TAB
+    list_of_matches = customtkinter.CTkOptionMenu(match_tab,
+                                                  width=200,
+                                                  values=matches,
+                                                  variable=choosed_match,
+                                                  fg_color="gray")
+    list_of_matches.grid(column=0, row=1, padx=60, pady=60)
+
+    # BET TAB
+    list_of_matches_for_bets = customtkinter.CTkOptionMenu(match_bet_tab,
+                                                           width=200,
+                                                           values=matches,
+                                                           variable=choosed_match,
+                                                           fg_color="gray")
+    list_of_matches_for_bets.grid(column=0, row=1, padx=20, pady=60)
+
+    list_of_users_for_bets = customtkinter.CTkOptionMenu(match_bet_tab,
+                                                         width=200,
+                                                         values=users,
+                                                         variable=choosed_user,
+                                                         fg_color="gray")
+    list_of_users_for_bets.grid(column=0, row=0, padx=20, pady=60)
+
+
+def bets_for_user_label():
+    user_matches = f"{choosed_user.get()} bets:\n"
+    for matches_db in UserBet.select().where(UserBet.owner_id == choosed_user.get()):
+        user_matches += matches_db.match + ": " + str(matches_db.left_bet) + " : " + str(
+            matches_db.right_bet) + "\n"
+    matches_label_with_score_for_bets = customtkinter.CTkLabel(match_bet_tab,
+                                                               text=user_matches,
+                                                               font=('Tahoma', 15),
+                                                               justify='right')
+    matches_label_with_score_for_bets.grid(column=3, row=0, padx=40)
+
+
+def update_bet_score():
+    (UserBet
+     .update(left_bet=score_entry_1.get())
+     .where((UserBet.match == choosed_match.get()) &
+            UserBet.owner == choosed_user.get())
+     .execute())
+    (UserBet
+     .update(right_bet=score_entry_2.get())
+     .where((UserBet.match == choosed_match.get()) &
+            UserBet.owner == choosed_user.get())
+     .execute())
+    all_labels_refresh()
+    bets_for_user_label()
+
+
+def add_bet_score():
+    (UserBet.insert({
+        UserBet.owner: str(choosed_user.get()),
+        UserBet.match: str(choosed_match.get()),
+        UserBet.score_bet: 0,
+        UserBet.left_bet: int(score_entry_1.get()),
+        UserBet.right_bet: int(score_entry_2.get())}).execute())
+    all_labels_refresh()
+    bets_for_user_label()
+
 
 # CTK SCORE INPUT
-score_input = customtkinter.CTkEntry(score_tab, width=40, placeholder_text="0:0")
-score_input.grid(column=0, row=1)
+score_input_first = customtkinter.CTkEntry(score_tab,
+                                           width=30,
+                                           placeholder_text="0")
+score_input_first.grid(column=1, row=1)
+score_input_second = customtkinter.CTkEntry(score_tab,
+                                            width=30,
+                                            placeholder_text="0")
+score_input_second.grid(column=2, row=1)
 
 
 # BUTTON TO CHANGE THE ACTUAL SCORE IN DB
 def change_input():
-    insert = score_input.get()
     (EndedMatch
-     .update(left_score=insert[0])
+     .update(left_score=score_input_first.get())
      .where(EndedMatch.name == choose.get())
      .execute())
     (EndedMatch
-     .update(right_score=insert[2])
+     .update(right_score=score_input_second.get())
      .where(EndedMatch.name == choose.get())
      .execute())
     checking_score(choose_out=choose)
-    match_label_refresh()
-    score_label_refresh()
+    all_labels_refresh()
 
 
+input_match_button = customtkinter.CTkButton(score_tab,
+                                             text='Update Score',
+                                             font=('Tahoma', 12),
+                                             command=change_input)
+input_match_button.grid(column=3, row=1, padx=60, pady=60)
 #
 # ADDING USER TAB
 #
-choosed_user = customtkinter.StringVar()
-add_user_entry = customtkinter.CTkEntry(user_tab, width=100, placeholder_text='George')
+
+add_user_entry = customtkinter.CTkEntry(user_tab,
+                                        width=100,
+                                        placeholder_text='George')
 add_user_entry.grid(column=0, row=0, padx=50, pady=50)
 
 
-def add_refresh_users():
+def add_users():
     User.create(name=add_user_entry.get(), score=0)
-    users = []
-    for user in User.select():
-        users.append(user.name)
-    list_of_users = customtkinter.CTkOptionMenu(user_tab, width=200, values=users, variable=choosed_user, fg_color="gray")
-    list_of_users.grid(column=0, row=1, padx=60, pady=60)
+    all_labels_refresh()
 
 
-def delete_refresh_users():
+def delete_users():
     User.delete().where(User.name == choosed_user.get()).execute()
-    users = []
-    for user in User.select():
-        users.append(user.name)
-    list_of_users = customtkinter.CTkOptionMenu(user_tab, width=200, values=users, variable=choosed_user, fg_color="gray")
-    list_of_users.grid(column=0, row=1, padx=60, pady=60)
+    all_labels_refresh()
 
 
-users_base = []
-for user in User.select():
-    users_base.append(user.name)
-list_of_users = customtkinter.CTkOptionMenu(user_tab, width=200, values=users_base, variable=choosed_user, fg_color="gray")
-list_of_users.grid(column=0, row=1, padx=60, pady=60)
-add_user_button = customtkinter.CTkButton(user_tab, text='Add User', command=add_refresh_users)
+add_user_button = customtkinter.CTkButton(user_tab,
+                                          text='Add User',
+                                          command=add_users)
 add_user_button.grid(column=1, row=0, padx=60, pady=0)
 
-delete_user_button = customtkinter.CTkButton(user_tab, text='Delete User', command=delete_refresh_users, fg_color="red")
+delete_user_button = customtkinter.CTkButton(user_tab,
+                                             text='Delete User',
+                                             command=delete_users,
+                                             fg_color="red")
 delete_user_button.grid(column=1, row=1, padx=60, pady=0)
-
-input_match_button = customtkinter.CTkButton(score_tab, text='OK', font=('Tahoma', 15), command=change_input)
-input_match_button.grid(column=2, row=1, padx=60, pady=60)
-
 
 #
 # ADDING MATCH TAB
 #
-choosed_match = customtkinter.StringVar()
-add_match_entry = customtkinter.CTkEntry(match_tab, width=100, placeholder_text='Poland - Germany')
+
+add_match_entry = customtkinter.CTkEntry(match_tab,
+                                         width=200,
+                                         placeholder_text='Poland - Germany')
 add_match_entry.grid(column=0, row=0, padx=50, pady=50)
 
 
-def add_refresh_matches():
+def add_matches():
     EndedMatch.create(name=add_match_entry.get(), left_score=0, right_score=0)
-    matches = []
-    for match in EndedMatch.select():
-        matches.append(match.name)
-    list_of_matches = customtkinter.CTkOptionMenu(match_tab, width=200, values=matches, variable=choosed_user, fg_color="gray")
-    list_of_matches.grid(column=0, row=1, padx=60, pady=60)
+    all_labels_refresh()
 
 
-def delete_refresh_matches():
+def delete_matches():
     EndedMatch.delete().where(EndedMatch.name == choosed_match.get()).execute()
-    matches = []
-    for match in EndedMatch.select():
-        matches.append(match.name)
-    list_of_matches = customtkinter.CTkOptionMenu(match_tab, width=200, values=matches, variable=choosed_match, fg_color="gray")
-    list_of_matches.grid(column=0, row=1, padx=60, pady=60)
+    all_labels_refresh()
 
 
-match_base = []
-for match in EndedMatch.select():
-    match_base.append(match.name)
-list_of_match = customtkinter.CTkOptionMenu(match_tab, width=200, values=match_base, variable=choosed_match, fg_color="gray")
-list_of_match.grid(column=0, row=1, padx=60, pady=60)
-add_match_button = customtkinter.CTkButton(match_tab, text='Add Match', command=add_refresh_matches)
+add_match_button = customtkinter.CTkButton(match_tab,
+                                           text='Add Match',
+                                           command=add_matches)
 add_match_button.grid(column=1, row=0, padx=60, pady=0)
 
-delete_match_button = customtkinter.CTkButton(match_tab, text='Delete Match', command=delete_refresh_matches, fg_color="red")
+delete_match_button = customtkinter.CTkButton(match_tab,
+                                              text='Delete Match',
+                                              command=delete_matches,
+                                              fg_color="red")
 delete_match_button.grid(column=1, row=1, padx=60, pady=0)
 
+#
+#   USERS BETS
+#
+score_entry_1 = customtkinter.CTkEntry(match_bet_tab,
+                                       width=30,
+                                       placeholder_text="0")
+score_entry_1.grid(column=1, row=1)
 
-# SCORE LOGIC
-# SOON KEK
+score_entry_2 = customtkinter.CTkEntry(match_bet_tab,
+                                       width=30,
+                                       placeholder_text="0")
+score_entry_2.grid(column=2, row=1)
 
+update_user_score_button = customtkinter.CTkButton(match_bet_tab,
+                                                   text='Add Bet',
+                                                   command=add_bet_score)
+update_user_score_button.grid(column=3, row=1, padx=60, pady=0)
+
+all_labels_refresh()
 
 root.mainloop()
