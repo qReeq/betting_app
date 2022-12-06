@@ -224,13 +224,17 @@ def update_bet_score():
 
 
 def add_bet_score():
-    (UserBet.insert({
-        UserBet.owner: str(choosed_user.get()),
-        UserBet.match: str(choosed_match.get()),
-        UserBet.score_bet: 0,
-        UserBet.left_bet: int(score_entry_1.get()),
-        UserBet.right_bet: int(score_entry_2.get())}).execute())
-    update_label()
+    exist_check = UserBet.get_or_none(match=choosed_match.get(), owner=choosed_user.get())
+    if exist_check is None:
+        (UserBet.insert({
+            UserBet.owner: str(choosed_user.get()),
+            UserBet.match: str(choosed_match.get()),
+            UserBet.score_bet: 0,
+            UserBet.left_bet: int(score_entry_1.get()),
+            UserBet.right_bet: int(score_entry_2.get())}).execute())
+        update_label()
+    else:
+        print("This match already have user bet")
 
 
 # CTK SCORE INPUT
@@ -274,13 +278,21 @@ add_user_entry.grid(column=0, row=0, padx=50, pady=50)
 
 
 def add_users():
-    User.create(name=add_user_entry.get(), score=0)
-    update_label()
+    exist_check = User.get_or_none(name=add_user_entry.get())
+    if exist_check is None:
+        User.create(name=add_user_entry.get(), score=0)
+        update_label()
+    else:
+        print("already existing")
 
 
 def delete_users():
-    User.delete().where(User.name == choosed_user.get()).execute()
-    update_label()
+    exist_check = User.get_or_none(name=add_user_entry.get())
+    if exist_check is not None:
+        User.delete().where(User.name == choosed_user.get()).execute()
+        update_label()
+    else:
+        print("user already deleted")
 
 
 add_user_button = customtkinter.CTkButton(user_tab,
@@ -305,13 +317,21 @@ add_match_entry.grid(column=0, row=0, padx=50, pady=50)
 
 
 def add_matches():
-    EndedMatch.create(name=add_match_entry.get(), left_score=0, right_score=0)
-    update_label()
+    exist_check = EndedMatch.get_or_none(name=add_match_entry.get())
+    if exist_check is None:
+        EndedMatch.create(name=add_match_entry.get(), left_score=0, right_score=0)
+        update_label()
+    else:
+        print("Match is already added")
 
 
 def delete_matches():
-    EndedMatch.delete().where(EndedMatch.name == choosed_match.get()).execute()
-    update_label()
+    exist_check = EndedMatch.get_or_none(name=add_match_entry.get())
+    if exist_check is None:
+        EndedMatch.delete().where(EndedMatch.name == choosed_match.get()).execute()
+        update_label()
+    else:
+        print("Match already deleted")
 
 
 add_match_button = customtkinter.CTkButton(match_tab,
